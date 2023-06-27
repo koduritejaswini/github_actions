@@ -1,14 +1,10 @@
 name: Process Files
 
 on:
-  workflow_dispatch:
-    inputs:
-      namesFile:
-        description: "Names file"
-        required: true
-      locationFile:
-        description: "Location file"
-        required: true
+  pull_request:
+    types:
+      - opened
+      - synchronize
 
 jobs:
   process-files:
@@ -18,14 +14,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Create artifact directory
-        run: mkdir artifacts
-
       - name: Upload input files
         run: |
-          echo "${{ github.event.inputs.namesFile }}" > artifacts/names.txt
-          echo "${{ github.event.inputs.locationFile }}" > artifacts/location.txt
-        shell: bash
+          mkdir artifacts
+          cp "${{ github.event.pull_request.head.repo.full_name }}/${{ github.event.pull_request.head.ref }}/names.txt" artifacts/
+          cp "${{ github.event.pull_request.head.repo.full_name }}/${{ github.event.pull_request.head.ref }}/location.txt" artifacts/
+      shell: bash
 
       - name: Upload input files as artifacts
         uses: actions/upload-artifact@v2
@@ -33,6 +27,14 @@ jobs:
           name: input-files
           path: artifacts
 
-      - name: Run script
+      - name: Process files
         run: |
-          bash scripts/process_files.sh ${{ github.workspace }}/artifacts/names.txt ${{ github.workspace }}/artifacts/location.txt
+          # Get the uploaded files
+          names_file="${{ github.workspace }}/artifacts/names.txt"
+          location_file="${{ github.workspace }}/artifacts/location.txt"
+
+          # Process the files as needed
+          echo "Processing names file: $names_file"
+          echo "Processing location file: $location_file"
+
+          # Add your logic here to process the files
