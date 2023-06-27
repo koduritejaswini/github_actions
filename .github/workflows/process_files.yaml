@@ -1,40 +1,49 @@
-name: Process Files
+name: Environment Files Workflow
 
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Environment option"
+        required: true
+        default: "AWS"
+        type: choice
+        options:
+          - AWS
+          - Azure
 
 jobs:
-  process-files:
+  environment-files-job:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Upload input files
+      - name: Set environment folder path
+        id: set-env-folder-path
+        run: echo "::set-output name=env-folder-path::./env/${{ github.event.inputs.env }}"
+
+      - name: Print Environment Files
         run: |
-          mkdir artifacts
-          cp "${{ github.event.pull_request.head.repo.full_name }}/${{ github.event.pull_request.head.ref }}/names.txt" artifacts/
-          cp "${{ github.event.pull_request.head.repo.full_name }}/${{ github.event.pull_request.head.ref }}/location.txt" artifacts/
-      shell: bash
+          env_folder_path="${{ steps.set-env-folder-path.outputs.env-folder-path }}"
 
-      - name: Upload input files as artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: input-files
-          path: artifacts
+          # Check if the environment folder exists
+          if [ -d "$env_folder_path" ]; then
+            echo "Environment folder found: $env_folder_path"
 
-      - name: Process files
-        run: |
-          # Get the uploaded files
-          names_file="${{ github.workspace }}/artifacts/names.txt"
-          location_file="${{ github.workspace }}/artifacts/location.txt"
+            # Check if both names.txt and location.txt files exist
+            if [ -f "$env_folder_path/names.txt" ] && [ -f "$env_folder_path/location.txt" ]; then
+              echo "Both names.txt and location.txt files found in the environment folder."
 
-          # Process the files as needed
-          echo "Processing names file: $names_file"
-          echo "Processing location file: $location_file"
+              # Call the print_files.sh script and pass the env_folder_path as an argument
+              bash scripts/print_files.sh "$env_folder_path"
 
-          # Add your logic here to process the files
+            else
+              echo "Either names.txt or location.txt file not found in the environment folder."
+            fi
+
+          else
+            echo "Environment folder not found: $env_folder_path"
+            exit 1
+          fi
