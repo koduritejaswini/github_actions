@@ -2,23 +2,37 @@ name: Process Files
 
 on:
   workflow_dispatch:
+    inputs:
+      namesFile:
+        description: "Names file"
+        required: true
+      locationFile:
+        description: "Location file"
+        required: true
 
 jobs:
   process-files:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Upload input files
-      uses: actions/upload-artifact@v2
-      with:
-        name: input-files
-        path: |
-          names.txt
-          location.txt
+      - name: Create artifact directory
+        run: mkdir artifacts
 
-    - name: Run script
-      run: |
-        bash scripts/process_files.sh ${{ github.workspace }}/names.txt ${{ github.workspace }}/location.txt
+      - name: Upload input files
+        run: |
+          echo "${{ github.event.inputs.namesFile }}" > artifacts/names.txt
+          echo "${{ github.event.inputs.locationFile }}" > artifacts/location.txt
+        shell: bash
+
+      - name: Upload input files as artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: input-files
+          path: artifacts
+
+      - name: Run script
+        run: |
+          bash scripts/process_files.sh ${{ github.workspace }}/artifacts/names.txt ${{ github.workspace }}/artifacts/location.txt
